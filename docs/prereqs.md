@@ -34,7 +34,17 @@ Single provider for everything Hermes calls — DeepSeek V4 for default routing,
 4. Create a key: https://openrouter.ai/keys
    - → `TF_VAR_openrouter_api_key` in `.env`
 
-## 4. Local tooling
+## 4. Telegram bot
+
+The user-facing chat surface. See [`telegram-setup.md`](telegram-setup.md) for the full walkthrough; in short:
+
+1. In Telegram, message **@BotFather** with `/newbot`. Provide a display name (e.g. `Hermes`) and a globally-unique username ending in `bot` (e.g. `bnpetty_hermes_bot`).
+2. BotFather returns an HTTP API token. Copy it.
+   - → `TF_VAR_telegram_bot_token` in `.env`
+3. Get your numeric Telegram user ID — message **@userinfobot** with `/start`. It replies with your numeric ID.
+   - → `TF_VAR_telegram_allowed_users` in `.env` (comma-separated if you want multiple users)
+
+## 5. Local tooling
 
 Install the three CLIs the workflow uses:
 
@@ -55,7 +65,7 @@ Why each one:
 - **Packer** — bakes the OS image
 - **Ansible** — configures the image during the bake
 
-## 5. (Optional) Emergency SSH key
+## 6. (Optional) Emergency SSH key
 
 Tailscale SSH is the primary access path. If you want a public-port-22 fallback for emergencies, generate a key and put the public part in `TF_VAR_ssh_admin_key`. You will *also* need to add a public SSH rule in `terraform/firewall.tf` — by default the firewall does **not** expose port 22 publicly.
 

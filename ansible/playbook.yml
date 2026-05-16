@@ -13,5 +13,4 @@
   roles:
     - common
     - tailscale
-    - signal_cli
     - hermes

@@ -16,6 +16,18 @@ variable "openrouter_api_key" {
   sensitive   = true
 }
 
+variable "telegram_bot_token" {
+  description = "Telegram bot token from @BotFather. Used by the Hermes messaging gateway."
+  type        = string
+  sensitive   = true
+}
+
+variable "telegram_allowed_users" {
+  description = "Comma-separated Telegram numeric user IDs allowed to message the bot. Get yours from @userinfobot."
+  type        = string
+  sensitive   = true
+}
+
 variable "ssh_admin_key" {
   description = "Optional emergency SSH public key. Tailscale SSH is the primary access path; leave blank unless you want a public-port-22 fallback. NOTE: even with a key, the firewall does not open port 22 by default — you would need to add a rule in firewall.tf."
   type        = string

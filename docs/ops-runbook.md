@@ -14,7 +14,7 @@
 
 ## State
 
-State is **local and gitignored** (`terraform/terraform.tfstate`). It contains all secrets in plaintext (Hetzner token, Tailscale auth key, API keys), so:
+State is **local and gitignored** (`terraform/terraform.tfstate`). It contains all secrets in plaintext (Hetzner token, Tailscale auth key, API keys, Telegram bot token), so:
 
 - Never commit it.
 - Back it up if you care about not re-discovering things — easiest is `cp terraform/terraform.tfstate ~/Documents/hermes-infra-state-$(date +%F).backup` before destructive changes.
@@ -37,7 +37,6 @@ If you want remote state later, options:
 
 **When to rebake:**
 - Bumping Hermes Agent (vendor's install.sh always pulls latest)
-- Bumping pinned `signal_cli_version` in `ansible/roles/signal_cli/defaults/main.yml`
 - Changing any Ansible role (`ansible/roles/**`)
 - Pulling fresh OS-level security patches (every few weeks is a reasonable cadence)
 
@@ -48,9 +47,15 @@ After a rebake, the next `make apply` will see the new snapshot and **replace th
 ### OpenRouter key
 1. New key in https://openrouter.ai/keys (keep the same spend cap or raise it).
 2. Update `TF_VAR_openrouter_api_key` in `.env`.
-3. `make apply` — cloud-init re-runs and rewrites `~/.hermes-env`. (Confirm with `cat /home/hermes/.hermes-env` over SSH.)
-4. Restart Hermes gateway: `hermes gateway restart`.
+3. `make apply` — cloud-init re-runs and rewrites `~/.hermes/.env`. (Confirm with `sudo grep OPENROUTER ~/.hermes/.env` over SSH.)
+4. Restart the gateway: `sudo systemctl restart hermes-gateway`.
 5. Revoke the old key in OpenRouter.
+
+### Telegram bot token
+1. In Telegram, message **@BotFather** → `/revoke` → pick your bot. New token returned.
+2. Update `TF_VAR_telegram_bot_token` in `.env`.
+3. `make apply`.
+4. `sudo systemctl restart hermes-gateway`.
 
 ### Hetzner token
 1. New token in Hetzner Console.
@@ -70,16 +75,16 @@ make destroy
 make apply
 ```
 
-Hermes' learning state (skills, memory, sessions in `~/.hermes/` on the VPS) is **wiped** by destroy. If you want to keep it: `rsync -avz hermes:.hermes/ ./hermes-state-backup/` first.
+Hermes' learning state (skills, memory, sessions in `~/.hermes/` on the VPS) is **wiped** by destroy. If you want to keep it: `rsync -avz hermes@hermes:.hermes/ ./hermes-state-backup/` first.
 
 ### Cloud-init failed on first boot
 
-At level 3 (baked image), cloud-init does very little — just inject secrets and `tailscale up`. If it fails, the box is reachable via the Hetzner web console (`console.hetzner.cloud` → server → Console). Common causes:
+At level 3, cloud-init does very little — just inject secrets and `tailscale up`. If it fails, the box is reachable via the Hetzner web console (`console.hetzner.cloud` → server → Console). Common causes:
 
 - **Tailscale auth key expired or invalid** — check the admin console; regenerate, update `.env`, re-apply.
-- **OpenRouter key has a typo** — fix `.env`, re-apply (cloud-init re-writes `.hermes-env`).
+- **OpenRouter key / Telegram bot token typo** — fix `.env`, re-apply (cloud-init re-writes `~/.hermes/.env`).
 
-`scripts/recover.sh` exists for the rare case where you need to manually rebuild bits of state on a half-broken box. At level 3 it's almost never needed; the baked image is the source of truth.
+When the image itself is suspect (something went wrong during the last bake), the right fix is `make image-build` to produce a fresh snapshot, then `make apply` — never patch the running box by hand. The image is the source of truth.
 
 ### Tailscale isn't appearing in admin console
 
@@ -94,12 +99,14 @@ If Tailscale is healthy but SSH fails: log in via Tailscale admin console "SSH" 
 - Hetzner: monthly invoice; CPX21 is ~€7.39/mo, snapshot storage ~€0.10/mo per image.
 - OpenRouter: dashboard shows real-time spend (Account → Limits sets the monthly cap; do this if you haven't).
 - Tailscale: free.
+- Telegram: free.
 
 If costs surprise you, the most likely culprit is a Hermes cron escalating to Sonnet for low-stakes turns. Check `~/.hermes/sessions/` on the box for recent activity.
 
 ## Future hardening (not done yet)
 
 - [x] ~~Move install logic into Ansible roles, bake with Packer~~ (done — moved from cloud-init-in-yaml shell to level 3)
+- [x] ~~Swap Signal for Telegram~~ (done — Telegram has first-class bot identity, no daemon, no phone number)
 - [ ] Attach a tofu-generated throwaway SSH key (`tls_private_key` resource → `hcloud_ssh_key` → server `ssh_keys`) to suppress Hetzner's root-password provisioning email. Note: requires server replacement on existing infra, so do this at the next planned destroy/apply.
 - [ ] Tailscale ACLs scoping `tag:server` so this box can't reach `tag:laptop`.
 - [ ] Snapshot retention policy — currently we keep all baked images; should prune to last 2-3.

@@ -13,9 +13,11 @@ resource "hcloud_server" "hermes" {
   firewall_ids = [hcloud_firewall.hermes.id]
 
   user_data = templatefile("${path.module}/cloud-init.yaml.tftpl", {
-    tailscale_auth_key = var.tailscale_auth_key
-    openrouter_api_key = var.openrouter_api_key
-    server_name        = var.server_name
+    tailscale_auth_key     = var.tailscale_auth_key
+    openrouter_api_key     = var.openrouter_api_key
+    telegram_bot_token     = var.telegram_bot_token
+    telegram_allowed_users = var.telegram_allowed_users
+    server_name            = var.server_name
   })
 
   labels = {

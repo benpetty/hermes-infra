@@ -10,7 +10,6 @@
       - git
       - ripgrep
       - ffmpeg
-      - default-jre-headless
       - build-essential
       - unattended-upgrades
     state: present
@@ -85,15 +84,12 @@
       ChallengeResponseAuthentication no
   notify: restart ssh
 
-- name: Source ~/.hermes-env from hermes bashrc (runtime env injection)
-  ansible.builtin.lineinfile:
-    path: /home/hermes/.bashrc
-    line: '[ -f ~/.hermes-env ] && . ~/.hermes-env'
-    state: present
-    create: true
-    owner: hermes
-    group: hermes
-    mode: '0644'
+# NOTE: We deliberately do NOT source ~/.hermes/.env from bashrc.
+# Hermes Agent reads that file natively at startup; the systemd gateway
+# service doesn't run an interactive shell so bashrc isn't sourced
+# anyway. If a future need arises to expose those vars to interactive
+# `hermes` CLI sessions, source it with `set -a` then dot-source and
+# `set +a` to handle the KEY=VALUE format correctly.
 
 - name: Create /opt/hermes-bootstrap for runtime "done" marker
   ansible.builtin.file:

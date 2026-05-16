@@ -1,22 +1,25 @@
 #cloud-config
 # Runtime configuration only. Everything deterministic (packages, users,
-# Tailscale binary, signal-cli, Hermes Agent) lives in the Packer-baked
-# image. This file injects the two things that must NOT be in an image:
-# runtime secrets and one-time identity material.
+# Tailscale binary, Hermes Agent) lives in the Packer-baked image. This
+# file injects the two things that must NOT be in an image: runtime
+# secrets and one-time identity material.
 
 hostname: ${server_name}
 manage_etc_hosts: true
 
 write_files:
-  # API keys consumed by Hermes' interactive shell session and gateway.
-  # `defer: true` ensures this runs after the hermes user (baked into
-  # the image) is available.
-  - path: /home/hermes/.hermes-env
+  # Runtime secrets for Hermes Agent. Hermes reads this file natively at
+  # startup. Format is plain KEY=VALUE (no `export` prefix, no quoting).
+  # `defer: true` ensures it runs after the hermes user (baked into the
+  # image) is available.
+  - path: /home/hermes/.hermes/.env
     owner: hermes:hermes
     permissions: '0600'
     defer: true
     content: |
-      export OPENROUTER_API_KEY='${openrouter_api_key}'
+      OPENROUTER_API_KEY=${openrouter_api_key}
+      TELEGRAM_BOT_TOKEN=${telegram_bot_token}
+      TELEGRAM_ALLOWED_USERS=${telegram_allowed_users}
 
 runcmd:
   # Tailscale authentication using a one-time auth key. The Tailscale

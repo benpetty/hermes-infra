@@ -1,5 +1,0 @@
----
-# Pin to a known-good version. Bump deliberately when needed and verify
-# the asset name pattern hasn't changed (it shifted from `-Linux.tar.gz`
-# to `-Linux-client.tar.gz` between 2024 and 2026).
-signal_cli_version: "0.14.3"
