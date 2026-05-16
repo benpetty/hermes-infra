@@ -1,0 +1,65 @@
+name: validate
+
+# Runs on every PR targeting main and on every push to main (catches anyone
+# who bypasses the PR workflow via admin override).
+#
+# Three jobs in parallel: each tool gets its own clean environment so a
+# missing tool can't pollute the next check's diagnostics.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  tofu-validate:
+    name: OpenTofu validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install OpenTofu
+        uses: opentofu/setup-opentofu@v1
+        with:
+          tofu_version: "1.11.6"
+      - name: tofu init (no backend, no creds)
+        working-directory: terraform
+        run: tofu init -backend=false -input=false
+      - name: tofu fmt check
+        working-directory: terraform
+        run: tofu fmt -check -recursive
+      - name: tofu validate
+        working-directory: terraform
+        run: tofu validate
+
+  packer-validate:
+    name: Packer validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Packer
+        uses: hashicorp/setup-packer@v3
+        with:
+          version: "1.15.3"
+      - name: packer init
+        working-directory: packer
+        run: packer init .
+      - name: packer fmt check
+        working-directory: packer
+        run: packer fmt -check .
+      - name: packer validate (syntax-only — no Hetzner creds in CI)
+        working-directory: packer
+        run: packer validate -syntax-only .
+
+  ansible-validate:
+    name: Ansible syntax-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Ansible
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ansible
+      - name: Playbook syntax-check
+        working-directory: ansible
+        run: ansible-playbook --syntax-check playbook.yml
