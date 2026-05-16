@@ -39,8 +39,8 @@ source "hcloud" "hermes" {
 
   # Labels on the temp build VM (useful for filtering it out of dashboards).
   server_labels = {
-    role     = "packer-builder"
-    purpose  = "hermes-agent-bake"
+    role    = "packer-builder"
+    purpose = "hermes-agent-bake"
   }
 }
 
