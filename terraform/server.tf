@@ -17,6 +17,7 @@ resource "hcloud_server" "hermes" {
     openrouter_api_key     = var.openrouter_api_key
     telegram_bot_token     = var.telegram_bot_token
     telegram_allowed_users = var.telegram_allowed_users
+    default_model          = var.default_model
     server_name            = var.server_name
   })
 

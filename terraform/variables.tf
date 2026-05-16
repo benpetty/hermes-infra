@@ -28,6 +28,11 @@ variable "telegram_allowed_users" {
   sensitive   = true
 }
 
+variable "default_model" {
+  description = "Default LLM model identifier passed to `hermes config set model.default`. Use OpenRouter IDs (e.g. anthropic/claude-haiku-4-5, anthropic/claude-sonnet-4-5, deepseek/deepseek-chat-v3.1). Hermes' built-in default is Opus 4.6 which is ~10× more expensive than Haiku for ambient chat; override to something appropriate for your workload."
+  type        = string
+}
+
 variable "ssh_admin_key" {
   description = "Optional emergency SSH public key. Tailscale SSH is the primary access path; leave blank unless you want a public-port-22 fallback. NOTE: even with a key, the firewall does not open port 22 by default — you would need to add a rule in firewall.tf."
   type        = string
