@@ -1,0 +1,47 @@
+variable "hcloud_token" {
+  description = "Hetzner Cloud API token (Read & Write)."
+  type        = string
+  sensitive   = true
+}
+
+variable "tailscale_auth_key" {
+  description = "Tailscale one-time auth key from https://login.tailscale.com/admin/settings/keys."
+  type        = string
+  sensitive   = true
+}
+
+variable "openrouter_api_key" {
+  description = "OpenRouter API key — Hermes' default model provider."
+  type        = string
+  sensitive   = true
+}
+
+variable "ssh_admin_key" {
+  description = "Optional emergency SSH public key. Tailscale SSH is the primary access path; leave blank unless you want a public-port-22 fallback. NOTE: even with a key, the firewall does not open port 22 by default — you would need to add a rule in firewall.tf."
+  type        = string
+  default     = ""
+}
+
+variable "server_name" {
+  description = "Hostname and Hetzner resource name."
+  type        = string
+  default     = "hermes"
+}
+
+variable "server_type" {
+  description = "Hetzner server type. cpx21 = 3 vCPU AMD EPYC shared / 4 GB RAM / 80 GB disk. Note: the CX (Intel) and CAX (ARM) lines are EU-only; US locations (ash/hil) only offer CPX and CCX."
+  type        = string
+  default     = "cpx21"
+}
+
+variable "server_location" {
+  description = "Hetzner location: ash (US-East/Ashburn), hil (US-West/Hillsboro), nbg/fsn (DE), hel (FI), sin (SG)."
+  type        = string
+  default     = "ash"
+}
+
+variable "server_image" {
+  description = "OS image."
+  type        = string
+  default     = "ubuntu-24.04"
+}

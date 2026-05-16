@@ -1,0 +1,26 @@
+# OpenTofu / Terraform — state contains secrets
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Lock file IS committed (pins providers) — explicit allow:
+!.terraform.lock.hcl
+
+# Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Editor / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
