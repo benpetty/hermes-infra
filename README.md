@@ -43,7 +43,7 @@ Self-hosted [Hermes Agent](https://github.com/NousResearch/hermes-agent) on a He
 
 This box runs **only Hermes**. It is *not* a jumpbox, *not* a homelab, *not* a place to keep production credentials. Hermes is an LLM-driven agent with full shell access by design — anything on this host is reachable by the agent, including from your Telegram messages.
 
-Resist the urge to put AWS creds, Audeos prod keys, GitHub deploy keys, or anything load-bearing on this machine. If you want a personal jumpbox, it's a sibling repo away.
+Resist the urge to put AWS creds, production keys for your other projects, GitHub deploy keys, or anything load-bearing on this machine. If you want a personal jumpbox, it's a sibling repo away.
 
 ## Quickstart
 
