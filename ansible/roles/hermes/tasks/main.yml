@@ -3,9 +3,9 @@
 # pulls down uv → Python 3.11 → Node.js 22 → ripgrep/ffmpeg checks → the
 # Hermes repo → a venv → all Python deps → Playwright Chromium.
 #
-# The `creates:` arg makes this idempotent — subsequent runs skip if the
-# repo directory already exists. To force a re-install during development,
-# delete /home/hermes/.hermes/hermes-agent on the target first.
+# The `creates:` arg on each task makes the role idempotent — subsequent
+# runs skip if the relevant artifact already exists. To force a re-install
+# during development, delete the relevant target on the box first.
 
 - name: Install Hermes Agent (as hermes user)
   become: true
@@ -14,3 +14,24 @@
     cmd: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
     creates: /home/hermes/.hermes/hermes-agent
     executable: /bin/bash
+
+# Install (but do NOT start) the systemd unit. At bake time, ~/.hermes/.env
+# isn't populated yet — starting now would cause an auth-failure crash loop.
+# Cloud-init writes the env at first boot of the real VM; the unit's
+# enabled flag below ensures systemd starts it once multi-user.target is
+# reached and .env is in place.
+#
+# HOME=/home/hermes is set so the hermes binary (running as root here)
+# can locate its own install layout under the hermes user's home dir.
+- name: Install hermes-gateway systemd unit
+  ansible.builtin.command:
+    cmd: /home/hermes/.local/bin/hermes gateway install --system --run-as-user hermes
+    creates: /etc/systemd/system/hermes-gateway.service
+  environment:
+    HOME: /home/hermes
+
+- name: Enable hermes-gateway to start on boot
+  ansible.builtin.systemd:
+    name: hermes-gateway
+    enabled: true
+    daemon_reload: true
