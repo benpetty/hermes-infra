@@ -71,15 +71,17 @@ Day-to-day, `make apply` is enough; the image is reused. Rebake only when:
 
 ## Cost
 
-| Item | Cost |
+All approximate — Hetzner adjusts pricing periodically and USD/EUR exchange shifts. Confirm current numbers with [Hetzner's pricing page](https://www.hetzner.com/cloud) or your live invoice.
+
+| Item | Cost (USD) |
 |---|---|
-| Hetzner CPX21 server | ~€7.39/mo |
-| Hetzner snapshot storage | ~€0.10/mo (~9 GB image) |
-| Packer build VM (per rebake) | ~€0.01 per build (5-10 min of CPX21) |
+| Hetzner CPX21 server | ~$11/mo |
+| Hetzner snapshot storage | ~$0.12/mo (~9 GB image) |
+| Packer build VM (per rebake) | ~$0.01 per build (5-10 min of CPX21) |
 | Tailscale Personal | Free (up to 100 devices) |
 | Model API (OpenRouter) | Variable — set a monthly cap at Account → Limits |
 
-**Total infra: ~€7.50/mo.** Model API spend depends on usage.
+**Total infra: ~$11/mo.** Model API spend depends on usage.
 
 ## Privacy & data flow
 
