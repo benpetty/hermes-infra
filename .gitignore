@@ -19,6 +19,11 @@ override.tf.json
 *.pem
 *.key
 
+# Packer outputs
+packer/manifest.json
+packer/crash.log
+packer/packer-build.log
+
 # Editor / OS
 .idea/
 .vscode/

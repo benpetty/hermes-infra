@@ -4,11 +4,12 @@
 
 | Need to… | Command |
 |---|---|
-| Apply changes | `make apply` |
-| Preview changes | `make plan` |
+| Bake a new image | `make image-build` |
+| Preview tofu changes | `make plan` |
+| Apply tofu changes | `make apply` |
 | SSH in | `make ssh` |
 | Check outputs (IP, etc.) | `make status` |
-| Reformat .tf files | `make fmt` |
+| Reformat .tf files | `make tf-fmt` |
 | Tear it all down | `make destroy` |
 
 ## State
@@ -22,6 +23,25 @@ State is **local and gitignored** (`terraform/terraform.tfstate`). It contains a
 If you want remote state later, options:
 - Hetzner Storage Box with `s3` backend (Hetzner offers an S3-compatible endpoint).
 - AWS S3 + DynamoDB lock table.
+
+## Image lifecycle
+
+| Need to… | Command | Notes |
+|---|---|---|
+| Bake a new image | `make image-build` | ~5-10 min. Spins up a temp CPX21, runs Ansible, snapshots, destroys temp. |
+| Validate before baking | `make image-validate` | Syntax-check Packer + Ansible. No API calls. |
+| Use latest image | (automatic) | Tofu's `data.hcloud_image.hermes` picks the most-recent snapshot labeled `purpose=hermes-agent` on every plan/apply. |
+| Pin a specific image | Manual | Edit `terraform/data.tf` to filter by `built_at` label or hardcode an ID. Rare. |
+| List snapshots | Hetzner Cloud Console | https://console.hetzner.cloud → Images → Snapshots, filtered by label `purpose=hermes-agent`. |
+| Prune old snapshots | Hetzner Cloud Console | Each snapshot is ~€0.10/mo. Keep the last 1-2 for rollback. Delete in the console UI. |
+
+**When to rebake:**
+- Bumping Hermes Agent (vendor's install.sh always pulls latest)
+- Bumping pinned `signal_cli_version` in `ansible/roles/signal_cli/defaults/main.yml`
+- Changing any Ansible role (`ansible/roles/**`)
+- Pulling fresh OS-level security patches (every few weeks is a reasonable cadence)
+
+After a rebake, the next `make apply` will see the new snapshot and **replace the running server**. To pin against this and rollback to a previous image, delete the new snapshot or edit `terraform/data.tf` to filter explicitly.
 
 ## Rotating credentials
 
@@ -39,7 +59,7 @@ If you want remote state later, options:
 4. Revoke the old one.
 
 ### Tailscale auth key
-The auth key is one-time-use, so it's only relevant during initial provisioning. To re-key: rotate via the Tailscale admin console (machine settings → re-authorize).
+The auth key is one-time-use, so it's only relevant during initial provisioning or when re-creating the server. To re-key: rotate via the Tailscale admin console (machine settings → re-authorize).
 
 ## Recovery
 
@@ -54,21 +74,16 @@ Hermes' learning state (skills, memory, sessions in `~/.hermes/` on the VPS) is 
 
 ### Cloud-init failed on first boot
 
-```bash
-ssh hermes
-sudo cat /var/log/hermes-bootstrap.log
-sudo tail -f /var/log/cloud-init-output.log
-```
+At level 3 (baked image), cloud-init does very little — just inject secrets and `tailscale up`. If it fails, the box is reachable via the Hetzner web console (`console.hetzner.cloud` → server → Console). Common causes:
 
-To re-run bootstrap manually:
+- **Tailscale auth key expired or invalid** — check the admin console; regenerate, update `.env`, re-apply.
+- **OpenRouter key has a typo** — fix `.env`, re-apply (cloud-init re-writes `.hermes-env`).
 
-```bash
-sudo /opt/hermes-bootstrap/run.sh
-```
+`scripts/recover.sh` exists for the rare case where you need to manually rebuild bits of state on a half-broken box. At level 3 it's almost never needed; the baked image is the source of truth.
 
 ### Tailscale isn't appearing in admin console
 
-The auth key may have expired (90-day default). Generate a new one, update `.env`, and re-run cloud-init or run `tailscale up --authkey=...` manually on the box.
+The auth key may have expired (90-day default). Generate a new one, update `.env`, and re-apply. Or SSH in via Hetzner web console and run `tailscale up --authkey=...` manually.
 
 ### I lost SSH access
 
@@ -76,7 +91,7 @@ If Tailscale is healthy but SSH fails: log in via Tailscale admin console "SSH" 
 
 ## Cost-watching
 
-- Hetzner: monthly invoice; CPX21 is ~€7.39/mo.
+- Hetzner: monthly invoice; CPX21 is ~€7.39/mo, snapshot storage ~€0.10/mo per image.
 - OpenRouter: dashboard shows real-time spend (Account → Limits sets the monthly cap; do this if you haven't).
 - Tailscale: free.
 
@@ -84,9 +99,11 @@ If costs surprise you, the most likely culprit is a Hermes cron escalating to So
 
 ## Future hardening (not done yet)
 
+- [x] ~~Move install logic into Ansible roles, bake with Packer~~ (done — moved from cloud-init-in-yaml shell to level 3)
 - [ ] Attach a tofu-generated throwaway SSH key (`tls_private_key` resource → `hcloud_ssh_key` → server `ssh_keys`) to suppress Hetzner's root-password provisioning email. Note: requires server replacement on existing infra, so do this at the next planned destroy/apply.
 - [ ] Tailscale ACLs scoping `tag:server` so this box can't reach `tag:laptop`.
-- [ ] Hetzner snapshot schedule (daily) for the boot volume — covers Hermes state recovery.
+- [ ] Snapshot retention policy — currently we keep all baked images; should prune to last 2-3.
 - [ ] Remote tofu state on Hetzner Storage Box.
 - [ ] Alertmanager / Healthchecks.io ping for the Hermes gateway being alive.
 - [ ] Move the OpenRouter key into a key-vault flow (1Password CLI → cloud-init).
+- [ ] Ansible-lint + Packer linter in CI before allowing rebakes.

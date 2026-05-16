@@ -1,0 +1,17 @@
+---
+# Bakes the Hermes Agent image. Run via Packer (preferred) or directly
+# against an SSH-reachable target via `ansible-playbook -i <inventory>`.
+#
+# Roles intentionally encode WHAT state the system should be in. Each is
+# idempotent — re-running this playbook should be a no-op on an already
+# configured host.
+- name: Bake Hermes Agent image
+  hosts: all
+  become: true
+  gather_facts: true
+
+  roles:
+    - common
+    - tailscale
+    - signal_cli
+    - hermes

@@ -34,13 +34,26 @@ Single provider for everything Hermes calls — DeepSeek V4 for default routing,
 4. Create a key: https://openrouter.ai/keys
    - → `TF_VAR_openrouter_api_key` in `.env`
 
-## 4. OpenTofu (local)
+## 4. Local tooling
+
+Install the three CLIs the workflow uses:
 
 ```bash
-brew install opentofu      # macOS
+brew install opentofu hashicorp/tap/packer ansible
 ```
 
-Verify: `tofu version` should show `>= 1.6.0`.
+Verify:
+
+```bash
+tofu version    # >= 1.6.0
+packer version  # >= 1.10.0
+ansible --version | head -1  # >= 2.16
+```
+
+Why each one:
+- **OpenTofu** — provisions infrastructure
+- **Packer** — bakes the OS image
+- **Ansible** — configures the image during the bake
 
 ## 5. (Optional) Emergency SSH key
 
@@ -55,9 +68,8 @@ For most setups, leave this blank.
 Once `.env` is filled in:
 
 ```bash
-make validate    # syntax check, no API calls
-make init        # downloads Hetzner provider
-make plan        # shows what would be created — review this!
+make image-validate     # ansible + packer syntax check
+make tf-validate        # tofu syntax + type check
 ```
 
-If `plan` looks right, run `make apply`.
+Both should be silent on success. Then proceed to image bake + tofu apply (see the README quickstart).

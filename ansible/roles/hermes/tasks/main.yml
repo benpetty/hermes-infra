@@ -1,0 +1,16 @@
+---
+# Install Hermes Agent under the hermes user. The vendor's install.sh
+# pulls down uv → Python 3.11 → Node.js 22 → ripgrep/ffmpeg checks → the
+# Hermes repo → a venv → all Python deps → Playwright Chromium.
+#
+# The `creates:` arg makes this idempotent — subsequent runs skip if the
+# repo directory already exists. To force a re-install during development,
+# delete /home/hermes/.hermes/hermes-agent on the target first.
+
+- name: Install Hermes Agent (as hermes user)
+  become: true
+  become_user: hermes
+  ansible.builtin.shell:
+    cmd: curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+    creates: /home/hermes/.hermes/hermes-agent
+    executable: /bin/bash

@@ -1,0 +1,108 @@
+---
+# Base OS configuration: packaging, user setup, SSH hardening, root lock.
+# This role assumes a fresh Ubuntu 24.04 (Noble) starting point.
+
+- name: Install base apt packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - ca-certificates
+      - git
+      - ripgrep
+      - ffmpeg
+      - default-jre-headless
+      - build-essential
+      - unattended-upgrades
+    state: present
+    update_cache: true
+    cache_valid_time: 600
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+
+- name: Configure apt to be non-interactive (for any future apt installs)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/99-noninteractive
+    mode: '0644'
+    content: |
+      APT::Get::Assume-Yes "true";
+      Dpkg::Options { "--force-confdef"; "--force-confold"; };
+
+- name: Ensure /etc/needrestart/conf.d exists
+  ansible.builtin.file:
+    path: /etc/needrestart/conf.d
+    state: directory
+    mode: '0755'
+
+- name: Configure needrestart to auto-restart services (no prompts)
+  ansible.builtin.copy:
+    dest: /etc/needrestart/conf.d/no-prompt.conf
+    mode: '0644'
+    content: |
+      $nrconf{restart} = 'a';
+      $nrconf{kernelhints} = 0;
+
+# Hetzner's Ubuntu images ship root with `passwd -e` set (force-change on
+# next login). cloud-init runs as root via systemd which ignores password
+# aging, but any later sudo/PAM call from root then fails. Lock root and
+# clear the aging flag so sudo stops caring.
+- name: Lock root password
+  ansible.builtin.user:
+    name: root
+    password_lock: true
+
+- name: Clear root password aging
+  ansible.builtin.command:
+    cmd: chage -E -1 -d -1 root
+  changed_when: false
+
+- name: Create hermes user
+  ansible.builtin.user:
+    name: hermes
+    shell: /bin/bash
+    home: /home/hermes
+    create_home: true
+    groups:
+      - sudo
+    append: true
+    password_lock: true
+
+- name: Grant hermes user passwordless sudo
+  ansible.builtin.copy:
+    dest: /etc/sudoers.d/99-hermes
+    mode: '0440'
+    content: |
+      hermes ALL=(ALL) NOPASSWD:ALL
+    validate: 'visudo -cf %s'
+
+- name: Harden OpenSSH defaults
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/99-hardening.conf
+    mode: '0644'
+    content: |
+      PermitRootLogin no
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      ChallengeResponseAuthentication no
+  notify: restart ssh
+
+- name: Source ~/.hermes-env from hermes bashrc (runtime env injection)
+  ansible.builtin.lineinfile:
+    path: /home/hermes/.bashrc
+    line: '[ -f ~/.hermes-env ] && . ~/.hermes-env'
+    state: present
+    create: true
+    owner: hermes
+    group: hermes
+    mode: '0644'
+
+- name: Create /opt/hermes-bootstrap for runtime "done" marker
+  ansible.builtin.file:
+    path: /opt/hermes-bootstrap
+    state: directory
+    mode: '0755'
+
+- name: Enable unattended-upgrades
+  ansible.builtin.systemd:
+    name: unattended-upgrades
+    enabled: true
+    state: started

@@ -1,56 +1,16 @@
 #cloud-config
+# Runtime configuration only. Everything deterministic (packages, users,
+# Tailscale binary, signal-cli, Hermes Agent) lives in the Packer-baked
+# image. This file injects the two things that must NOT be in an image:
+# runtime secrets and one-time identity material.
+
 hostname: ${server_name}
 manage_etc_hosts: true
 
-users:
-  - name: hermes
-    groups: [sudo]
-    shell: /bin/bash
-    sudo: "ALL=(ALL) NOPASSWD:ALL"
-    lock_passwd: true
-
-package_update: true
-package_upgrade: true
-
-packages:
-  - curl
-  - ca-certificates
-  - git
-  - ripgrep
-  - ffmpeg
-  - default-jre-headless
-  - build-essential
-  - unattended-upgrades
-
 write_files:
-  # Suppress interactive apt/needrestart prompts during cloud-init's
-  # package_upgrade and any apt calls inside our runcmd. Without this, the
-  # Hermes installer (which apt-installs Python/Node deps) can hit a
-  # blocking dialog about pending kernel upgrades.
-  - path: /etc/needrestart/conf.d/no-prompt.conf
-    permissions: '0644'
-    content: |
-      $nrconf{restart} = 'a';
-      $nrconf{kernelhints} = 0;
-
-  - path: /etc/apt/apt.conf.d/99-noninteractive
-    permissions: '0644'
-    content: |
-      APT::Get::Assume-Yes "true";
-      Dpkg::Options { "--force-confdef"; "--force-confold"; };
-
-  # Lock down OpenSSH defaults. Tailscale SSH is the primary path; if a
-  # public SSH fallback is ever needed, it'll happen via key only.
-  - path: /etc/ssh/sshd_config.d/99-hardening.conf
-    permissions: '0644'
-    content: |
-      PermitRootLogin no
-      PasswordAuthentication no
-      KbdInteractiveAuthentication no
-      ChallengeResponseAuthentication no
-
-  # Hermes runtime env. Sourced by the hermes user's bashrc on login,
-  # so `hermes setup` will see these as defaults during interactive setup.
+  # API keys consumed by Hermes' interactive shell session and gateway.
+  # `defer: true` ensures this runs after the hermes user (baked into
+  # the image) is available.
   - path: /home/hermes/.hermes-env
     owner: hermes:hermes
     permissions: '0600'
@@ -58,85 +18,12 @@ write_files:
     content: |
       export OPENROUTER_API_KEY='${openrouter_api_key}'
 
-  - path: /opt/hermes-bootstrap/run.sh
-    permissions: '0755'
-    content: |
-      #!/usr/bin/env bash
-      set -euo pipefail
-      export DEBIAN_FRONTEND=noninteractive
-      export NEEDRESTART_MODE=a
-      LOG=/var/log/hermes-bootstrap.log
-      exec > >(tee -a "$LOG") 2>&1
-      echo "[$(date -Is)] bootstrap starting"
-
-      # ----- Tailscale ----------------------------------------------------
-      curl -fsSL https://tailscale.com/install.sh | sh
-      tailscale up \
-        --authkey='${tailscale_auth_key}' \
-        --ssh \
-        --hostname='${server_name}' \
-        --accept-dns=false
-
-      # ----- signal-cli (linked-device mode; QR scan happens later) ------
-      # Resolve latest version by following GitHub's release redirect, not by
-      # parsing the JSON API (anonymous-rate-limited and brittle to format
-      # drift). Validate explicitly so the script fails loudly here instead
-      # of cascading into a 404.
-      SC_URL="$(curl -fsIL -o /dev/null -w '%%{url_effective}' https://github.com/AsamK/signal-cli/releases/latest)"
-      SC_VERSION="$${SC_URL##*/v}"
-      if ! echo "$$SC_VERSION" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$$'; then
-        echo "FATAL: signal-cli version unresolved (got: '$$SC_VERSION')" >&2
-        exit 1
-      fi
-      echo "Installing signal-cli v$$SC_VERSION"
-
-      # Asset names changed in 2026. The `-Linux-client.tar.gz` and
-      # `-Linux-native.tar.gz` builds ship a single binary at the archive
-      # root (not the historical `signal-cli-X.Y.Z/bin/signal-cli` layout).
-      # We use the -client build since default-jre-headless is installed
-      # in the packages list above. Handle both single-binary and directory
-      # cases so future format changes don't break us silently.
-      rm -f /tmp/signal-cli.tar.gz
-      curl -fsSL \
-        "https://github.com/AsamK/signal-cli/releases/download/v$${SC_VERSION}/signal-cli-$${SC_VERSION}-Linux-client.tar.gz" \
-        -o /tmp/signal-cli.tar.gz
-
-      SC_ARCHIVE_ROOT="$(tar -tzf /tmp/signal-cli.tar.gz | head -1 | cut -d/ -f1)"
-      rm -f /opt/signal-cli /usr/local/bin/signal-cli
-      rm -rf "/opt/$$SC_ARCHIVE_ROOT"
-      tar -xzf /tmp/signal-cli.tar.gz -C /opt/
-
-      TARGET="/opt/$$SC_ARCHIVE_ROOT"
-      if [ -f "$$TARGET" ]; then
-        mv "$$TARGET" /usr/local/bin/signal-cli
-        chmod +x /usr/local/bin/signal-cli
-      elif [ -d "$$TARGET" ]; then
-        ln -sfn "$$TARGET" /opt/signal-cli
-        SC_BIN_PATH="$(find /opt/signal-cli/ -name signal-cli -type f -executable | head -1)"
-        if [ -z "$$SC_BIN_PATH" ]; then
-          echo "FATAL: signal-cli binary not found inside /opt/signal-cli/" >&2
-          exit 1
-        fi
-        ln -sfn "$$SC_BIN_PATH" /usr/local/bin/signal-cli
-      else
-        echo "FATAL: extracted $$TARGET is neither file nor directory" >&2
-        exit 1
-      fi
-
-      # ----- Hermes (installed under the hermes user's home) -------------
-      sudo -iu hermes bash -c \
-        'curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash'
-
-      # Source the env file from the hermes user's bashrc.
-      grep -q 'hermes-env' /home/hermes/.bashrc 2>/dev/null || \
-        echo '[ -f ~/.hermes-env ] && . ~/.hermes-env' >> /home/hermes/.bashrc
-      chown hermes:hermes /home/hermes/.bashrc
-
-      systemctl enable --now unattended-upgrades
-      sshd -t && systemctl reload ssh || true
-
-      touch /opt/hermes-bootstrap/done
-      echo "[$(date -Is)] bootstrap complete"
-
 runcmd:
-  - [ /opt/hermes-bootstrap/run.sh ]
+  # Tailscale authentication using a one-time auth key. The Tailscale
+  # binary itself is pre-installed in the image; only the auth + ssh-mode
+  # activation happens here.
+  - [ tailscale, up, --authkey=${tailscale_auth_key}, --ssh, --hostname=${server_name}, --accept-dns=false ]
+
+  # Marker for runbook / verification — `ls /opt/hermes-bootstrap/done`
+  # is a quick confirmation that runtime config succeeded.
+  - [ touch, /opt/hermes-bootstrap/done ]

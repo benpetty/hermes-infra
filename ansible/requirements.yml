@@ -1,0 +1,7 @@
+---
+# Galaxy dependencies. Currently we use only ansible.builtin modules, so
+# no external collections or roles are required. Keeping this file as a
+# convention so `ansible-galaxy install -r requirements.yml` works the
+# day we add a community.general or artis3n.tailscale dependency.
+collections: []
+roles: []

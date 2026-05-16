@@ -7,7 +7,7 @@ resource "hcloud_ssh_key" "admin" {
 resource "hcloud_server" "hermes" {
   name         = var.server_name
   server_type  = var.server_type
-  image        = var.server_image
+  image        = data.hcloud_image.hermes.id
   location     = var.server_location
   ssh_keys     = var.ssh_admin_key == "" ? [] : [hcloud_ssh_key.admin[0].name]
   firewall_ids = [hcloud_firewall.hermes.id]

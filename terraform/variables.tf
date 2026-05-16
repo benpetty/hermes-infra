@@ -40,8 +40,8 @@ variable "server_location" {
   default     = "ash"
 }
 
-variable "server_image" {
-  description = "OS image."
-  type        = string
-  default     = "ubuntu-24.04"
-}
+# Note: there is no `server_image` variable here. The image is resolved
+# automatically by the data "hcloud_image" "hermes" source in data.tf,
+# which selects the most recent snapshot labeled purpose=hermes-agent.
+# To use a different image, build a new one with packer; this query then
+# picks it up on the next apply.
