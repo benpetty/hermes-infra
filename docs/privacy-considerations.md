@@ -110,9 +110,14 @@ See the README's "What to share with Hermes (and what not to)" section for the o
 
 ## Mitigations in detail
 
-### 1. Disable OpenRouter logging
+### 1. Verify OpenRouter isn't logging your inputs/outputs
 
-Go to https://openrouter.ai → Settings → Inference Privacy → set to **"Don't log my prompts."** This is the single highest-impact privacy lever. Free.
+Good news: OpenRouter's logging is **off by default**. There are two related toggles, both starting off; you just need to confirm they're still off (or opt them off if you previously opted in for the 1% discount).
+
+- **Workspace Privacy** at https://openrouter.ai/workspaces/default/settings — the **"OpenRouter Use of Inputs/Outputs"** toggle. If on, OpenRouter retains your prompts/responses to improve their service. Default: **off**.
+- **Workspace Observability** at https://openrouter.ai/workspaces/default/observability — the **"Private Input & Output Logging"** toggle. If on, OpenRouter stores your prompts/responses **for your own viewing** (your private logs). Default: **off**.
+
+Both off ≡ OpenRouter retains nothing about your prompts beyond what the underlying model provider needs to serve the request. That's the privacy posture you want.
 
 ### 2. Pin to providers with explicit no-training policies
 

@@ -91,7 +91,7 @@ Every message you send Hermes touches **four distinct trust boundaries**: Telegr
 |---|---|---|---|
 | **Telegram** | Every message body + metadata | Indefinitely on their servers. Bot chats are **not** end-to-end encrypted — only Secret Chats are, and bots can't use those. | Telegram account compromise; subpoena to Telegram |
 | **Hetzner** (your VPS) | Cleartext messages, SQLite of every conversation, your memory file, your API keys | Until `make destroy` | German GDPR-bound provider; hypervisor-level access in theory |
-| **OpenRouter** | Full prompt + response on every API call | 30 days default; disable in dashboard (Settings → Inference Privacy) | Their breach exposes everything |
+| **OpenRouter** | Full prompt + response on every API call | **Off by default** (no logging). Two toggles in the dashboard you should verify stay off: *Workspace Privacy → "OpenRouter Use of Inputs/Outputs"* and *Workspace Observability → "Private Input & Output Logging"*. | Their breach exposes anything you opt-in to log |
 | **Model provider** (Anthropic, etc.) | Your prompts including conversation history Hermes has accumulated | Anthropic/OpenAI: 30 days, no training on API inputs by default. DeepSeek + many Chinese providers: unclear, may train on inputs, subject to PRC data laws. | Provider breach; subpoena |
 | **Hermes itself** (on your VPS) | Everything, forever, in `~/.hermes/sessions/` + memory file | Whatever you configure | Anyone who pwns the VM gets a structured profile of you |
 
@@ -124,7 +124,7 @@ The persistent piece is the dangerous piece. A single message is ephemeral; Herm
 
 Things you can do that meaningfully shrink the surface area:
 
-1. **Disable OpenRouter logging**: dashboard → Settings → Inference Privacy → opt out. Cuts one major retention point.
+1. **Verify OpenRouter isn't logging** (it's off by default, but worth confirming): Workspace Privacy at https://openrouter.ai/workspaces/default/settings → **"OpenRouter Use of Inputs/Outputs"** stays off. Also check Workspace Observability at https://openrouter.ai/workspaces/default/observability → **"Private Input & Output Logging"** stays off. Both off means OpenRouter retains nothing about your prompts beyond what the model provider needs to serve them.
 2. **Prefer providers with explicit no-training policies**: Anthropic and OpenAI paid API. Avoid routing sensitive context through DeepSeek or other models with unclear policies.
 3. **Periodically audit Hermes' memory**: SSH in, read `~/.hermes/MEMORY.md` (or wherever Hermes persists memory), prune anything you don't want there. Make this a monthly habit.
 4. **Never paste secrets into chat with Hermes** — same rule that applies to chatting with any LLM. If you need a secret on the box, write it directly to the runtime env file on the box, not via Telegram.
