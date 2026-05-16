@@ -33,7 +33,7 @@ If you want remote state later, options:
 | Use latest image | (automatic) | Tofu's `data.hcloud_image.hermes` picks the most-recent snapshot labeled `purpose=hermes-agent` on every plan/apply. |
 | Pin a specific image | Manual | Edit `terraform/data.tf` to filter by `built_at` label or hardcode an ID. Rare. |
 | List snapshots | Hetzner Cloud Console | https://console.hetzner.cloud → Images → Snapshots, filtered by label `purpose=hermes-agent`. |
-| Prune old snapshots | Hetzner Cloud Console | Each snapshot is ~€0.10/mo. Keep the last 1-2 for rollback. Delete in the console UI. |
+| Prune old snapshots | Hetzner Cloud Console | Each snapshot is ~$0.12/mo. Keep the last 1-2 for rollback. Delete in the console UI. |
 
 **When to rebake:**
 - Bumping Hermes Agent (vendor's install.sh always pulls latest)
@@ -96,7 +96,7 @@ If Tailscale is healthy but SSH fails: log in via Tailscale admin console "SSH" 
 
 ## Cost-watching
 
-- Hetzner: monthly invoice; CPX21 is ~€7.39/mo, snapshot storage ~€0.10/mo per image.
+- Hetzner: monthly invoice; CPX21 is ~$11/mo, snapshot storage ~$0.12/mo per image. Confirm against current pricing at https://www.hetzner.com/cloud.
 - OpenRouter: dashboard shows real-time spend (Account → Limits sets the monthly cap; do this if you haven't).
 - Tailscale: free.
 - Telegram: free.

@@ -43,7 +43,7 @@ Self-hosted [Hermes Agent](https://github.com/NousResearch/hermes-agent) on a He
 
 This box runs **only Hermes**. It is *not* a jumpbox, *not* a homelab, *not* a place to keep production credentials. Hermes is an LLM-driven agent with full shell access by design — anything on this host is reachable by the agent, including from your Telegram messages.
 
-Resist the urge to put AWS creds, Audeos prod keys, GitHub deploy keys, or anything load-bearing on this machine. If you want a personal jumpbox, it's a sibling repo away.
+Resist the urge to put AWS creds, production keys for your other projects, GitHub deploy keys, or anything load-bearing on this machine. If you want a personal jumpbox, it's a sibling repo away.
 
 ## Quickstart
 
@@ -71,15 +71,17 @@ Day-to-day, `make apply` is enough; the image is reused. Rebake only when:
 
 ## Cost
 
-| Item | Cost |
+All approximate — Hetzner adjusts pricing periodically and USD/EUR exchange shifts. Confirm current numbers with [Hetzner's pricing page](https://www.hetzner.com/cloud) or your live invoice.
+
+| Item | Cost (USD) |
 |---|---|
-| Hetzner CPX21 server | ~€7.39/mo |
-| Hetzner snapshot storage | ~€0.10/mo (~9 GB image) |
-| Packer build VM (per rebake) | ~€0.01 per build (5-10 min of CPX21) |
+| Hetzner CPX21 server | ~$11/mo |
+| Hetzner snapshot storage | ~$0.12/mo (~9 GB image) |
+| Packer build VM (per rebake) | ~$0.01 per build (5-10 min of CPX21) |
 | Tailscale Personal | Free (up to 100 devices) |
 | Model API (OpenRouter) | Variable — set a monthly cap at Account → Limits |
 
-**Total infra: ~€7.50/mo.** Model API spend depends on usage.
+**Total infra: ~$11/mo.** Model API spend depends on usage.
 
 ## Privacy & data flow
 
