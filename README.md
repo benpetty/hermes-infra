@@ -30,9 +30,10 @@ Self-hosted [Hermes Agent](https://github.com/NousResearch/hermes-agent) on a He
 │   ├── variables.tf, ...
 │   └── cloud-init.yaml.tftpl  # ~10 lines of runtime config
 ├── docs/
-│   ├── prereqs.md           # Account + tooling checklist
-│   ├── telegram-setup.md    # BotFather + user ID walkthrough
-│   └── ops-runbook.md       # Lifecycle commands
+│   ├── prereqs.md                # Account + tooling checklist
+│   ├── telegram-setup.md         # BotFather + user ID walkthrough
+│   ├── ops-runbook.md            # Lifecycle commands
+│   └── privacy-considerations.md # Data-flow + threat-model deep dive
 ├── .env.example
 ├── Makefile
 └── .gitignore
