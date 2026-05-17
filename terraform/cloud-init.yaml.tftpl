@@ -27,6 +27,19 @@ runcmd:
   # activation happens here.
   - [ tailscale, up, --authkey=${tailscale_auth_key}, --ssh, --hostname=${server_name}, --accept-dns=false ]
 
+  # Set the default LLM model. Hermes' install defaults to Opus 4.6 which
+  # is wildly expensive for ambient chat (~$0.20-0.30 per turn). We
+  # override via `hermes config set` so the gateway service uses the
+  # `default_model` chosen for this deploy. The setting persists in
+  # ~/.hermes/config.yaml and survives reboots; subsequent cloud-init
+  # passes won't re-run runcmd, but the value is now baked in to that file.
+  - [ runuser, -l, hermes, -c, "hermes config set model.default ${default_model}" ]
+
+  # Restart the gateway so it picks up the model change. systemd will have
+  # started the unit on boot with whatever default was in config.yaml at
+  # bake time, so this catches it.
+  - [ systemctl, restart, hermes-gateway ]
+
   # Marker for runbook / verification — `ls /opt/hermes-bootstrap/done`
   # is a quick confirmation that runtime config succeeded.
   - [ touch, /opt/hermes-bootstrap/done ]
