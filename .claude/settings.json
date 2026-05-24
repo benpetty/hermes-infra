@@ -1,5 +1,5 @@
 {
-  "_comment": "Repo-local Claude Code settings: keep agents away from secrets and generated state. Rules MERGE with user-global settings — they extend, not replace. The PreToolUse Bash hook catches sneakier forms (grep/awk/sed/source/redirect) that the permission glob patterns can't.",
+  "_comment": "Repo-local Claude Code settings: keep agents away from generated state and non-Bash reads of secret files. Rules MERGE with user-global settings — they extend, not replace. Bash-level secret-file protection (including .env*, AWS/SSH/netrc/1Password paths) is handled by the global PreToolUse hook at ~/.claude/hooks/deny-env-bash.sh, so this file no longer ships a vendored copy or redundant Bash(... .env*) deny rules.",
   "permissions": {
     "deny": [
       "Read(.env)",
@@ -10,32 +10,8 @@
       "Edit(terraform/terraform.tfstate.backup)",
       "Edit(terraform/.terraform/**)",
       "Edit(packer/manifest.json)",
-      "Bash(cat .env*)",
-      "Bash(grep * .env*)",
-      "Bash(grep .env*)",
-      "Bash(head .env*)",
-      "Bash(tail .env*)",
-      "Bash(less .env*)",
-      "Bash(more .env*)",
-      "Bash(source .env*)",
-      "Bash(. .env*)",
-      "Bash(awk * .env*)",
-      "Bash(sed * .env*)",
       "Bash(cat terraform/terraform.tfstate*)",
       "Bash(grep * terraform/terraform.tfstate*)"
-    ]
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/deny-env-bash.sh"
-          }
-        ]
-      }
     ]
   }
 }
